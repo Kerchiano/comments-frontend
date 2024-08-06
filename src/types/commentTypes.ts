@@ -34,6 +34,7 @@ export interface CommentErrors {
 export interface CommentFormProps {
   parentId?: number;
   fetchComments: () => void
+  onSuccess: () => void
 }
 
 export type FormData = {

@@ -1,8 +1,11 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import { CommentErrors, CommentFormProps, FormData } from "../types/commentTypes";
+import {
+  CommentErrors,
+  CommentFormProps,
+  FormData,
+} from "../types/commentTypes";
 
-
-const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
+const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) => {
   const [formData, setFormData] = useState<FormData>({
     username: "",
     email: "",
@@ -13,6 +16,7 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
   const [captchaImage, setCaptchaImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [success, setSuccess] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState<boolean>(true);
 
   useEffect(() => {
     const updateCaptcha = () => {
@@ -27,7 +31,11 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
     if (success) {
       const timer = setTimeout(() => {
         setSuccess(null);
-      }, 3000);
+        setIsVisible(false); 
+        if (onSuccess) {
+          onSuccess();
+        }
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [success]);
@@ -37,8 +45,11 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
     let isValid = true;
 
     Object.keys(formData).forEach((key) => {
-      if (key !== 'home_page' && !formData[key as keyof FormData]) {
-        newErrors[key as keyof FormData] = `${key.replace('_', ' ')} is required`;
+      if (key !== "home_page" && !formData[key as keyof FormData]) {
+        newErrors[key as keyof FormData] = `${key.replace(
+          "_",
+          " "
+        )} is required`;
         isValid = false;
       }
     });
@@ -47,7 +58,9 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
     return isValid;
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { id, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [id]: value }));
     setErrors((prevErrors) => ({ ...prevErrors, [id]: "" }));
@@ -78,7 +91,7 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
       }
 
       setSuccess("Comment added successfully!");
-      fetchComments()
+      fetchComments();
       setFormData({
         username: "",
         email: "",
@@ -98,30 +111,39 @@ const CommentForm = ({ parentId, fetchComments }: CommentFormProps) => {
     }
   };
 
+  if (!isVisible) {
+    return null;
+  }
+
   return (
-    <div className="max-w-md w-1/4 mx-auto p-4 bg-white shadow-md rounded-lg text-left mb-10">
+    <div className="max-w-md min-w-96 w-1/4 mx-auto p-4 bg-white shadow-md rounded-lg text-left mb-10">
       <h2 className="text-xl font-bold mb-4 text-center">Add a Comment</h2>
       {success && <p className="text-green-500 mb-4">{success}</p>}
       <form onSubmit={handleSubmit}>
-        {['username', 'email'].map((field) => (
+        {["username", "email"].map((field) => (
           <div className="mb-4" key={field}>
             <label
               htmlFor={field}
               className="block text-sm font-medium text-gray-700"
             >
-              {field.replace('_', ' ').charAt(0).toUpperCase() + field.replace('_', ' ').slice(1)}
+              {field.replace("_", " ").charAt(0).toUpperCase() +
+                field.replace("_", " ").slice(1)}
             </label>
             <input
               id={field}
-              type={field === 'email' ? 'email' : 'text'}
+              type={field === "email" ? "email" : "text"}
               value={formData[field as keyof FormData]}
               onChange={handleChange}
               className={`mt-1 block w-full px-3 py-2 border ${
-                errors[field as keyof FormData] ? "border-red-500" : "border-gray-300"
+                errors[field as keyof FormData]
+                  ? "border-red-500"
+                  : "border-gray-300"
               } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
             />
             {errors[field as keyof FormData] && (
-              <p className="text-red-500 text-sm mt-1">{errors[field as keyof FormData]}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors[field as keyof FormData]}
+              </p>
             )}
           </div>
         ))}
