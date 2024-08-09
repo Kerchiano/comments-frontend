@@ -14,33 +14,29 @@ export interface CommentResponse {
   results: Comment[];
 }
 
-// export interface CommentFormProps {
-//   onSubmit: (commentData: {
-//     username: string;
-//     email: string;
-//     parent_id: number | null;
-//     home_page: string;
-//     captcha_text: string;
-//     text: string;
-//   }) => void;
-// }
 
-export interface CommentErrors {
-  email?: string;
-  captcha_text?: string;
+export interface FormErrors {
   username?: string;
+  email?: string;
+  home_page?: string;
+  text?: string;
+  captcha_text?: string;
+  image?: string;
+  file?: string;
 }
 
 export interface CommentFormProps {
   parentId?: number;
-  fetchComments: () => void
-  onSuccess: () => void
+  fetchComments: () => void;
+  onSuccess?: () => void;
 }
 
-export type FormData = {
+export interface FormData {
   username: string;
   email: string;
   home_page?: string;
   text: string;
   captcha_text: string;
-};
+  image?: Blob  | null;
+  file?: Blob  | null;
+}

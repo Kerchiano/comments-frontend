@@ -73,7 +73,7 @@ const CommentDetail = () => {
       <div
         key={reply.id}
         className="mt-4"
-        style={{ marginLeft: `${level * 30}px` }}
+        style={{ marginLeft: `${level + 30}px` }}
       >
         <div className="bg-gray-100 p-2 flex">
           <div className="flex items-center">

@@ -1,22 +1,27 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import {
-  CommentErrors,
-  CommentFormProps,
-  FormData,
-} from "../types/commentTypes";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { CommentFormProps, FormErrors } from "../types/commentTypes";
+import type { FormData } from "../types/commentTypes";
 
-const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) => {
+const CommentForm = ({
+  parentId,
+  fetchComments,
+  onSuccess,
+}: CommentFormProps) => {
   const [formData, setFormData] = useState<FormData>({
     username: "",
     email: "",
     home_page: "",
     text: "",
     captcha_text: "",
+    image: null,
+    file: null,
   });
   const [captchaImage, setCaptchaImage] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   useEffect(() => {
     const updateCaptcha = () => {
@@ -29,24 +34,34 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
 
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => {
-        setSuccess(null);
-        setIsVisible(false); 
+      setIsVisible(false);
+      const executeOnSuccess = new Promise<void>((resolve) => {
         if (onSuccess) {
           onSuccess();
         }
-      }, 1000);
-      return () => clearTimeout(timer);
+        resolve();
+      });
+  
+      executeOnSuccess.then(() => {
+        setTimeout(() => {
+          alert(success);
+        }, 300);
+      });
     }
   }, [success]);
 
   const validateFields = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+    const newErrors: FormErrors = {};
     let isValid = true;
 
     Object.keys(formData).forEach((key) => {
-      if (key !== "home_page" && !formData[key as keyof FormData]) {
-        newErrors[key as keyof FormData] = `${key.replace(
+      if (
+        key !== "home_page" &&
+        key !== "image" &&
+        key !== "file" &&
+        !formData[key as keyof FormData]
+      ) {
+        newErrors[key as keyof FormErrors] = `${key.replace(
           "_",
           " "
         )} is required`;
@@ -66,6 +81,30 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
     setErrors((prevErrors) => ({ ...prevErrors, [id]: "" }));
   };
 
+  const handleFileChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    field: "image" | "file"
+  ) => {
+    const file = e.target.files?.[0] || null;
+    setFormData((prevData) => ({ ...prevData, [field]: file }));
+    setErrors((prevErrors) => ({ ...prevErrors, [field]: "" }));
+
+    if (field === "image") {
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {};
+        reader.readAsDataURL(file);
+      } else {
+        setModalImage(null);
+      }
+    }
+    if (file) {
+      setFileName(file.name);
+    } else {
+      setFileName(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
@@ -73,20 +112,31 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
       return;
     }
 
+    const formDataToSend = new FormData();
+    formDataToSend.append("username", formData.username);
+    formDataToSend.append("email", formData.email);
+    formDataToSend.append("home_page", formData.home_page || "");
+    formDataToSend.append("text", formData.text);
+    formDataToSend.append("captcha_text", formData.captcha_text);
+    if (formData.image) {
+      formDataToSend.append("image", formData.image);
+    }
+    if (formData.file) {
+      formDataToSend.append("file", formData.file);
+    }
+    if (parentId) {
+      formDataToSend.append("parent_id", parentId.toString());
+    }
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/comments/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          parent_id: parentId || null,
-        }),
+        body: formDataToSend,
       });
 
       if (!response.ok) {
-        const errorData: CommentErrors = await response.json();
+        const errorData = await response.json();
+        setErrors(errorData);
         throw new Error(JSON.stringify(errorData));
       }
 
@@ -98,6 +148,8 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
         home_page: "",
         text: "",
         captcha_text: "",
+        image: null,
+        file: null,
       });
       setErrors({});
 
@@ -105,10 +157,18 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
       setCaptchaImage(newCaptchaUrl);
     } catch (err) {
       if (err instanceof Error) {
-        const errorData: Partial<FormData> = JSON.parse(err.message);
+        const errorData: FormErrors = JSON.parse(err.message);
         setErrors((prevErrors) => ({ ...prevErrors, ...errorData }));
       }
     }
+  };
+
+  const openModal = (imageUrl: string) => {
+    setModalImage(imageUrl);
+  };
+
+  const closeModal = () => {
+    setModalImage(null);
   };
 
   if (!isVisible) {
@@ -118,35 +178,49 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
   return (
     <div className="max-w-md min-w-96 w-1/4 mx-auto p-4 bg-white shadow-md rounded-lg text-left mb-10">
       <h2 className="text-xl font-bold mb-4 text-center">Add a Comment</h2>
-      {success && <p className="text-green-500 mb-4">{success}</p>}
       <form onSubmit={handleSubmit}>
-        {["username", "email"].map((field) => (
-          <div className="mb-4" key={field}>
-            <label
-              htmlFor={field}
-              className="block text-sm font-medium text-gray-700"
-            >
-              {field.replace("_", " ").charAt(0).toUpperCase() +
-                field.replace("_", " ").slice(1)}
-            </label>
-            <input
-              id={field}
-              type={field === "email" ? "email" : "text"}
-              value={formData[field as keyof FormData]}
-              onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${
-                errors[field as keyof FormData]
-                  ? "border-red-500"
-                  : "border-gray-300"
-              } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
-            />
-            {errors[field as keyof FormData] && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors[field as keyof FormData]}
-              </p>
-            )}
-          </div>
-        ))}
+        <div className="mb-4">
+          <label
+            htmlFor="username"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Username
+          </label>
+          <input
+            id="username"
+            type="text"
+            value={formData.username}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border ${
+              errors.username ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+          />
+          {errors.username && (
+            <p className="text-red-500 text-sm mt-1">{errors.username}</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            className={`mt-1 block w-full px-3 py-2 border ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+          )}
+        </div>
+
         <div className="mb-4">
           <label
             htmlFor="home_page"
@@ -157,11 +231,78 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
           <input
             id="home_page"
             type="url"
-            value={formData.home_page || ""}
+            value={formData.home_page}
             onChange={handleChange}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="image"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Image file (optional)
+          </label>
+          <input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileChange(e, "image")}
+            className={`mt-1 block w-full px-3 py-2 border ${
+              errors.image ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+          />
+          {formData.image && (
+            <div className="mt-2">
+              <img
+                src={URL.createObjectURL(formData.image)}
+                alt="Uploaded"
+                className="cursor-pointer"
+                style={{ width: 90, height: 90 }}
+                onClick={() => openModal(URL.createObjectURL(formData.image!))}
+              />
+            </div>
+          )}
+          {errors.image && (
+            <p className="text-red-500 text-sm mt-1">{errors.image}</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="file"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Other file (optional)
+          </label>
+          <input
+            id="file"
+            type="file"
+            onChange={(e) => handleFileChange(e, "file")}
+            className={`mt-1 block w-full px-3 py-2 border ${
+              errors.file ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+          />
+          {formData.file && (
+            <div className="mt-2">
+              <p>
+                <a
+                  href={URL.createObjectURL(formData.file)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 text-sm hover:underline"
+                >
+                   {fileName}
+                </a>
+              </p>
+            </div>
+          )}
+          {errors.file && (
+            <p className="text-red-500 text-sm mt-1">{errors.file}</p>
+          )}
+        </div>
+
         <div className="mb-2">
           <label
             htmlFor="text"
@@ -182,34 +323,60 @@ const CommentForm = ({ parentId, fetchComments, onSuccess  }: CommentFormProps) 
             <p className="text-red-500 text-sm mt-1">{errors.text}</p>
           )}
         </div>
-        {captchaImage && (
-          <div className="mb-4">
-            <div className="flex justify-center h-16 border rounded mb-2">
-              <img src={captchaImage} alt="CAPTCHA" className="mb-2 w-48" />
-            </div>
-            <input
-              id="captcha_text"
-              type="text"
-              value={formData.captcha_text}
-              onChange={handleChange}
-              className={`mt-1 block w-full px-3 py-2 border ${
-                errors.captcha_text ? "border-red-500" : "border-gray-300"
-              } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
-            />
-            {errors.captcha_text && (
-              <p className="text-red-500 text-sm mt-1">{errors.captcha_text}</p>
-            )}
-          </div>
-        )}
+
+        <div className="mb-4">
+          <img
+            src={captchaImage || ""}
+            alt="Captcha"
+            className="mb-2 cursor-pointer"
+            onClick={() =>
+              setCaptchaImage(
+                `http://127.0.0.1:8000/api/generate-captcha/?${new Date().getTime()}`
+              )
+            }
+          />
+          <input
+            id="captcha_text"
+            type="text"
+            value={formData.captcha_text}
+            onChange={handleChange}
+            placeholder="Enter CAPTCHA"
+            className={`mt-1 block w-full px-3 py-2 border ${
+              errors.captcha_text ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+          />
+          {errors.captcha_text && (
+            <p className="text-red-500 text-sm mt-1">{errors.captcha_text}</p>
+          )}
+        </div>
+
         <button
           type="submit"
-          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Submit Comment
+          Submit
         </button>
       </form>
+
+      {modalImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={closeModal}
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="max-w-4/5 max-h-4/5">
+              <img
+                src={modalImage}
+                alt="Modal"
+                className="w-3/5 h-auto min-w-96 mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default CommentForm;
