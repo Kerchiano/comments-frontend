@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Comment, CommentResponse } from "../types/commentTypes";
+import { IComment, ICommentResponse } from "../types/commentTypes";
 import { useDebounce } from "../hooks/useDebounce";
 import CommentForm from "./CommentForm";
 import { useNavigate } from "react-router-dom";
 
 const MainPage = () => {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<IComment[]>([]);
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [createdAtOrder, setCreatedAtOrder] = useState<"fifo" | "lifo" | "">(
@@ -28,7 +28,7 @@ const MainPage = () => {
 
     fetch(url.toString())
       .then((response) => response.json())
-      .then((data: CommentResponse) => {
+      .then((data: ICommentResponse) => {
         setComments(data.results);
         setTotalPages(Math.ceil(data.count / 25));
       })

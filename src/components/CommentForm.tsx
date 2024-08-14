@@ -1,13 +1,14 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { CommentFormProps, FormErrors } from "../types/commentTypes";
-import type { FormData } from "../types/commentTypes";
+import { ICommentFormProps, IFormErrors } from "../types/commentTypes";
+import type { IFormData } from "../types/commentTypes";
 
 const CommentForm = ({
   parentId,
   fetchComments,
   onSuccess,
-}: CommentFormProps) => {
-  const [formData, setFormData] = useState<FormData>({
+  socket,
+}: ICommentFormProps) => {
+  const [formData, setFormData] = useState<IFormData>({
     username: "",
     email: "",
     home_page: "",
@@ -17,7 +18,7 @@ const CommentForm = ({
     file: null,
   });
   const [captchaImage, setCaptchaImage] = useState<string | null>(null);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<IFormErrors>({});
   const [success, setSuccess] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState<boolean>(true);
   const [modalImage, setModalImage] = useState<string | null>(null);
@@ -41,7 +42,7 @@ const CommentForm = ({
         }
         resolve();
       });
-  
+
       executeOnSuccess.then(() => {
         setTimeout(() => {
           alert(success);
@@ -51,7 +52,7 @@ const CommentForm = ({
   }, [success]);
 
   const validateFields = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: IFormErrors = {};
     let isValid = true;
 
     Object.keys(formData).forEach((key) => {
@@ -59,9 +60,9 @@ const CommentForm = ({
         key !== "home_page" &&
         key !== "image" &&
         key !== "file" &&
-        !formData[key as keyof FormData]
+        !formData[key as keyof IFormData]
       ) {
-        newErrors[key as keyof FormErrors] = `${key.replace(
+        newErrors[key as keyof IFormErrors] = `${key.replace(
           "_",
           " "
         )} is required`;
@@ -140,6 +141,8 @@ const CommentForm = ({
         throw new Error(JSON.stringify(errorData));
       }
 
+      const commentData = await response.json();
+
       setSuccess("Comment added successfully!");
       fetchComments();
       setFormData({
@@ -153,11 +156,15 @@ const CommentForm = ({
       });
       setErrors({});
 
+      if (socket) {
+        socket.send(JSON.stringify({ message: commentData }));
+      }
+
       const newCaptchaUrl = `http://127.0.0.1:8000/api/generate-captcha/?${new Date().getTime()}`;
       setCaptchaImage(newCaptchaUrl);
     } catch (err) {
       if (err instanceof Error) {
-        const errorData: FormErrors = JSON.parse(err.message);
+        const errorData: IFormErrors = JSON.parse(err.message);
         setErrors((prevErrors) => ({ ...prevErrors, ...errorData }));
       }
     }
@@ -293,7 +300,7 @@ const CommentForm = ({
                   rel="noopener noreferrer"
                   className="text-indigo-600 hover:text-indigo-800 text-sm hover:underline"
                 >
-                   {fileName}
+                  {fileName}
                 </a>
               </p>
             </div>
@@ -377,6 +384,5 @@ const CommentForm = ({
     </div>
   );
 };
-
 
 export default CommentForm;
