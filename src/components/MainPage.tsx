@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Comment, CommentResponse } from "../types/commentTypes";
+import { IComment, ICommentResponse } from "../types/commentTypes";
 import { useDebounce } from "../hooks/useDebounce";
 import CommentForm from "./CommentForm";
 import { useNavigate } from "react-router-dom";
 
 const MainPage = () => {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<IComment[]>([]);
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [createdAtOrder, setCreatedAtOrder] = useState<"fifo" | "lifo" | "">(
@@ -13,6 +13,7 @@ const MainPage = () => {
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
@@ -27,9 +28,9 @@ const MainPage = () => {
 
     fetch(url.toString())
       .then((response) => response.json())
-      .then((data: CommentResponse) => {
+      .then((data: ICommentResponse) => {
         setComments(data.results);
-        setTotalPages(Math.ceil(data.count / 2));
+        setTotalPages(Math.ceil(data.count / 25));
       })
       .catch((error) => console.error("Error fetching comments:", error));
   };
@@ -49,6 +50,10 @@ const MainPage = () => {
 
   const handleCommentClick = (commentId: number) => {
     navigate(`/detail-title-comments/${commentId}`);
+  };
+
+  const toggleFormVisibility = () => {
+    setIsFormVisible(!isFormVisible);
   };
 
   return (
@@ -135,7 +140,19 @@ const MainPage = () => {
           </button>
         </div>
       </div>
-      <CommentForm parentId={undefined} fetchComments={fetchComments} />
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={toggleFormVisibility}
+          className={`px-4 py-2 rounded ${
+            isFormVisible ? "bg-red-500 text-white" : "bg-blue-500 text-white"
+          }`}
+        >
+          {isFormVisible ? "Don't add comment" : "Add comment"}
+        </button>
+      </div>
+      {isFormVisible && (
+        <CommentForm parentId={undefined} fetchComments={fetchComments} onSuccess={() => setIsFormVisible(false)}/>
+      )}
     </>
   );
 };

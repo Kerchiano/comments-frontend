@@ -1,4 +1,4 @@
-export interface Comment {
+export interface IComment {
   id: number;
   username: string;
   email: string;
@@ -7,39 +7,46 @@ export interface Comment {
   created_at: string;
 }
 
-export interface CommentResponse {
+export interface ICommentResponse {
   count: number;
   next: string | null;
   previous: string | null;
-  results: Comment[];
+  results: IComment[];
 }
 
-// export interface CommentFormProps {
-//   onSubmit: (commentData: {
-//     username: string;
-//     email: string;
-//     parent_id: number | null;
-//     home_page: string;
-//     captcha_text: string;
-//     text: string;
-//   }) => void;
-// }
-
-export interface CommentErrors {
-  email?: string;
-  captcha_text?: string;
+export interface IFormErrors {
   username?: string;
+  email?: string;
+  home_page?: string;
+  text?: string;
+  captcha_text?: string;
+  image?: string;
+  file?: string;
 }
 
-export interface CommentFormProps {
+export interface ICommentFormProps {
   parentId?: number;
-  fetchComments: () => void
+  fetchComments: () => void;
+  onSuccess?: () => void;
+  socket?: WebSocket | null;
 }
 
-export type FormData = {
+export interface IFormData {
   username: string;
   email: string;
   home_page?: string;
   text: string;
   captcha_text: string;
-};
+  image?: Blob | null;
+  file?: Blob | null;
+}
+
+export interface ICommentDetail {
+  id: number;
+  username: string;
+  email: string;
+  home_page: string | null;
+  text: string;
+  created_at: string;
+  replies: ICommentDetail[];
+}
