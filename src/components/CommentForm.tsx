@@ -143,8 +143,8 @@ const CommentForm = ({
 
       const commentData = await response.json();
 
-      setSuccess("Comment added successfully!");
       fetchComments();
+      setSuccess("Comment added successfully!");
       setFormData({
         username: "",
         email: "",
