@@ -1,30 +1,14 @@
-# React + TypeScript + Vite
+1. Create a folder, then in Command Prompt (cmd), navigate to your folder `C:\...\your_folder` and run:
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+    ```bash
+    git clone https://github.com/Kerchiano/comments-frontend.git
+    ```
 
-Currently, two official plugins are available:
+2. Run Docker Compose:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+    ```bash
+    docker-compose up
+    ```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json', './tsconfig.app.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+3. Congratulations! Open your browser and go to [http://localhost:5173/mainpage](http://localhost:5173/mainpage) to check the API endpoints.
+4. Create comment and click right arrow in table or [http://localhost:5173/detail-title-comments/:id](http://localhost:5173/detail-title-comments/:id). You need to know id comments.
